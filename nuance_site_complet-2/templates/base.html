@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <meta name="description" content="{{ site_name }} crée des rencontres par affinités, sans critères physiques.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="page-bg"></div>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('home') }}">
+      <span class="brand-mark">✦</span>
+      <span class="brand-text">{{ site_name }}</span>
+    </a>
+    <nav>
+      {% if current_user %}
+        <a href="{{ url_for('profile') }}">Profil</a>
+        <a href="{{ url_for('my_match') }}">Mon match</a>
+        <a href="{{ url_for('logout') }}">Déconnexion</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Connexion</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="container">
+    {% with messages=get_flashed_messages(with_categories=true) %}
+      {% for category, msg in messages %}
+        <div class="flash {{ category }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <a href="{{ url_for('privacy') }}">Confidentialité</a>
+    <span>•</span>
+    <span>18+</span>
+    <span>•</span>
+    <span>Matching par personnalité, valeurs et communication</span>
+  </footer>
+</body>
+</html>

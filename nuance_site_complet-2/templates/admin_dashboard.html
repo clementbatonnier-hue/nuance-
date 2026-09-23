@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Pilotage — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="page-head admin-head">
+  <div>
+    <span class="eyebrow">ADMIN</span>
+    <h1>Pilotage {{ site_name }}</h1>
+    <p class="muted">Crée des événements, distribue des codes et publie les matchs au bon moment.</p>
+  </div>
+  <a class="btn ghost" href="{{ url_for('admin_logout') }}">Quitter l’admin</a>
+</div>
+
+<section class="admin-grid admin-grid-top">
+  <div class="admin-section">
+    <h2>Créer un événement</h2>
+    <form method="post" action="{{ url_for('admin_create_event') }}" class="stack-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Nom<input name="name" placeholder="Ex. Dîner du 12 octobre" required></label>
+      <label>Description<input name="description" placeholder="Ex. soirée alumni, 30 participants"></label>
+      <button class="btn primary">Créer</button>
+    </form>
+  </div>
+
+  <div class="admin-section">
+    <h2>Événements</h2>
+    <div class="event-list">
+      {% for event in events %}
+        <a class="event-pill {% if selected_event and selected_event.id == event.id %}active{% endif %}" href="{{ url_for('admin_dashboard', event_id=event.id) }}">
+          <strong>{{ event.name }}</strong>
+          <span>{{ event.description or 'Sans description' }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% if selected_event %}
+<section class="admin-section accent-section">
+  <div class="event-header">
+    <div>
+      <span class="eyebrow">ÉVÉNEMENT SÉLECTIONNÉ</span>
+      <h2>{{ selected_event.name }}</h2>
+      <p class="muted">{{ selected_event.description or 'Aucune description pour le moment.' }}</p>
+    </div>
+    <div class="admin-actions">
+      <form method="post" action="{{ url_for('admin_invites') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="event_id" value="{{ selected_event.id }}">
+        <label>Codes à créer<input type="number" name="count" value="10" min="1" max="200"></label>
+        <button class="btn primary">Générer</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_rebuild_matches') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="event_id" value="{{ selected_event.id }}">
+        <button class="btn ghost">Calculer les matchs</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_publish_matches') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="event_id" value="{{ selected_event.id }}">
+        <button class="btn primary">Publier</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_unpublish_matches') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="event_id" value="{{ selected_event.id }}">
+        <button class="btn ghost">Repasser en brouillon</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="stat-grid">
+  <div class="stat-card"><strong>{{ stats.participants }}</strong><span>Participants inscrits</span></div>
+  <div class="stat-card"><strong>{{ stats.completed }}</strong><span>Profils complets</span></div>
+  <div class="stat-card"><strong>{{ stats.ready }}</strong><span>Prêts pour le matching</span></div>
+  <div class="stat-card"><strong>{{ stats.codes_available }}</strong><span>Codes disponibles</span></div>
+  <div class="stat-card"><strong>{{ stats.codes_used }}</strong><span>Codes utilisés</span></div>
+  <div class="stat-card"><strong>{{ stats.published_pairs + stats.draft_pairs }}</strong><span>Paires calculées</span></div>
+</section>
+
+<section class="admin-grid">
+  <div class="admin-section">
+    <h2>Message d’invitation type</h2>
+    <textarea class="copy-area" rows="7" readonly>{{ invite_message }}</textarea>
+  </div>
+  <div class="admin-section">
+    <h2>Codes récents</h2>
+    <div class="chips">
+      {% for i in invites %}
+        <span class="chip {{ 'used' if i.used else '' }}">{{ i.code }} · {{ 'utilisé' if i.used else 'disponible' }}</span>
+      {% else %}
+        <span class="muted">Aucun code pour cet événement.</span>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="admin-section">
+  <h2>Aperçu des meilleures compatibilités avant publication</h2>
+  <div class="preview-list">
+    {% for item in preview_pairs %}
+      <div class="preview-card">
+        <div class="preview-card-top">
+          <strong>{{ item.user_a.display_name }} × {{ item.user_b.display_name }}</strong>
+          <span>{{ item.score|round|int }}%</span>
+        </div>
+        <p>{{ item.explanation.narrative }}</p>
+        <div class="chips">
+          {% for h in item.explanation.highlights %}<span class="chip subtle">{{ h }}</span>{% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="empty"><p>Pas assez de profils complets pour afficher un aperçu.</p></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="admin-grid">
+  <div class="admin-section">
+    <h2>Participants</h2>
+    <div class="table">
+      <div class="tr th four"><span>Nom</span><span>E-mail</span><span>Profil</span><span>Maj</span></div>
+      {% for u in users %}
+        <div class="tr four">
+          <span>{{ u.display_name }}</span>
+          <span>{{ u.email }}</span>
+          <span>{{ 'Prêt' if readiness_map.get(u.id) else 'À compléter' }}</span>
+          <span>{{ u.updated_at.strftime('%d/%m %H:%M') }}</span>
+        </div>
+      {% else %}
+        <div class="empty"><p>Aucun participant inscrit.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <h2>Matchs calculés</h2>
+    <div class="table">
+      <div class="tr th three"><span>Personne A</span><span>Personne B</span><span>Score</span></div>
+      {% for m in matches %}
+        <div class="tr three">
+          <span>{{ name_map.get(m.user_a_id, '#' ~ m.user_a_id) }}</span>
+          <span>{{ name_map.get(m.user_b_id, '#' ~ m.user_b_id) }}</span>
+          <span>{{ m.score|round|int }}% {{ '· publié' if m.published else '· brouillon' }}</span>
+        </div>
+      {% else %}
+        <div class="empty"><p>Aucun match calculé pour cet événement.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

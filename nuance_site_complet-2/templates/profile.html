@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Mon profil — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <span class="eyebrow">TON ESPACE</span>
+    <h1>{{ user.display_name }}</h1>
+    <p class="muted">Événement : <strong>{{ event.name }}</strong>{% if event.description %} — {{ event.description }}{% endif %}</p>
+  </div>
+  <a class="btn ghost" href="{{ url_for('questionnaire') }}">Modifier mes réponses</a>
+</div>
+
+<div class="tabs">
+  <a class="tab active" href="{{ url_for('profile') }}">Profil</a>
+  <a class="tab" href="{{ url_for('my_match') }}">Mon match</a>
+</div>
+
+{% if not user.profile_complete %}
+  <div class="empty">
+    <h2>Profil incomplet</h2>
+    <p>Ton questionnaire n’est pas encore terminé.</p>
+    <a class="btn primary" href="{{ url_for('questionnaire') }}">Compléter le questionnaire</a>
+  </div>
+{% else %}
+  <div class="responses">
+    {% for section, items in sections.items() %}
+      <section class="response-card">
+        <h2>{{ section }}</h2>
+        {% for q, val in items %}
+          {% if q.kind == 'text' %}
+            <div class="response-block">
+              <span>{{ q.text }}</span>
+              <p>{{ val }}</p>
+            </div>
+          {% elif q.kind == 'scale' %}
+            <div class="response-row">
+              <span>{{ q.text }}</span>
+              <strong>{{ val }} / 5</strong>
+            </div>
+          {% elif q.id == 'gender' %}
+            <div class="response-row"><span>{{ q.text }}</span><strong>{{ gender_labels.get(val, val) }}</strong></div>
+          {% elif q.id == 'seeking_genders' %}
+            <div class="response-block"><span>{{ q.text }}</span><p>{% for item in val %}{{ gender_labels.get(item, item) }}{% if not loop.last %}, {% endif %}{% endfor %}</p></div>
+          {% else %}
+            <div class="response-row"><span>{{ q.text }}</span><strong>{{ val }} ans</strong></div>
+          {% endif %}
+        {% endfor %}
+      </section>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<form method="post" action="{{ url_for('delete_account') }}" onsubmit="return confirm('Supprimer définitivement ton compte ?')">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button class="danger-link">Supprimer mon compte</button>
+</form>
+{% endblock %}
