@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Connexion — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="panel narrow auth-panel">
+  <span class="eyebrow">BON RETOUR</span>
+  <h1>Connexion</h1>
+  <p class="muted">Retrouve ton profil et ton match depuis ton espace personnel.</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>E-mail<input type="email" name="email" required></label>
+    <label>Mot de passe<input type="password" name="password" required></label>
+    <button class="btn primary full">Se connecter</button>
+  </form>
+</div>
+{% endblock %}

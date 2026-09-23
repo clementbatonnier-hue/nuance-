@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Questionnaire — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="questionnaire-head">
+  <span class="eyebrow">QUESTIONNAIRE</span>
+  <h1>Parle-nous de toi.</h1>
+  <p>On commence par les critères indispensables pour éviter les matchs incompatibles, puis on s’intéresse à ta personnalité. Aucun critère d’apparence physique n’est demandé.</p>
+</div>
+
+<form method="post" class="questionnaire">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% set ns = namespace(last='') %}
+  {% for q in questions %}
+    {% if q.section != ns.last %}
+      <h2>{{ q.section }}</h2>
+      {% if q.section == 'Infos de base' %}
+        <p class="section-help">Ces réponses servent uniquement à filtrer les personnes qui correspondent mutuellement à vos préférences avant le calcul de compatibilité.</p>
+      {% endif %}
+      {% set ns.last = q.section %}
+    {% endif %}
+    <div class="q {% if q.kind == 'text' %}q-text{% endif %}">
+      <p>{{ q.text }}</p>
+
+      {% if q.kind == 'scale' %}
+        <div class="scale">
+          <span>Pas du tout</span>
+          <div class="scale-options">
+            {% for n in range(1, 6) %}
+              <label>
+                <input type="radio" name="{{ q.id }}" value="{{ n }}" {% if existing.get(q.id|string)|string == n|string %}checked{% endif %} required>
+                <b>{{ n }}</b>
+              </label>
+            {% endfor %}
+          </div>
+          <span>Tout à fait</span>
+        </div>
+
+      {% elif q.kind == 'text' %}
+        <textarea name="{{ q.id }}" rows="4" placeholder="{{ q.placeholder }}" required>{{ existing.get(q.id, '') }}</textarea>
+
+      {% elif q.kind == 'number' %}
+        <input type="number" name="{{ q.id }}" min="{{ q.min }}" max="{{ q.max }}" value="{{ existing.get(q.id, '') }}" required>
+
+      {% elif q.kind == 'single' %}
+        <div class="choice-grid">
+          {% for value, label in q.options %}
+            <label class="choice-card">
+              <input type="radio" name="{{ q.id }}" value="{{ value }}" {% if existing.get(q.id) == value %}checked{% endif %} required>
+              <span>{{ label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+
+      {% elif q.kind == 'multi' %}
+        <div class="choice-grid">
+          {% set selected = existing.get(q.id, []) %}
+          {% for value, label in q.options %}
+            <label class="choice-card">
+              <input type="checkbox" name="{{ q.id }}" value="{{ value }}" {% if value in selected %}checked{% endif %}>
+              <span>{{ label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        <small class="field-help">Tu peux sélectionner plusieurs réponses.</small>
+      {% endif %}
+    </div>
+  {% endfor %}
+  <button class="btn primary full">Enregistrer mon profil</button>
+</form>
+{% endblock %}
